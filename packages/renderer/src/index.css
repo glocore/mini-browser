@@ -1,0 +1,10 @@
+body {
+  background-color: #0000004f;
+  -webkit-app-region: drag;
+  padding: 0;
+  margin: 0;
+}
+
+input {
+  -webkit-app-region: no-drag;
+}

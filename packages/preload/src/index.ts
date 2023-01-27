@@ -1,6 +1,12 @@
-/**
- * @module preload
- */
+import {ipcRenderer} from 'electron';
 
-export {sha256sum} from './nodeCrypto';
 export {versions} from './versions';
+
+export const electronApi = {
+  subscribeToUrlChanges: (callback: (url: string) => void) =>
+    ipcRenderer.on('URL_CHANGED', (_, url) => callback(url)),
+
+  updateUrl: (url: string) => {
+    ipcRenderer.send('UPDATE_URL', url);
+  },
+};

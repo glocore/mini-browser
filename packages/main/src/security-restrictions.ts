@@ -41,19 +41,19 @@ app.on('web-contents-created', (_, contents) => {
    *
    * @see https://www.electronjs.org/docs/latest/tutorial/security#13-disable-or-limit-navigation
    */
-  contents.on('will-navigate', (event, url) => {
-    const {origin} = new URL(url);
-    if (ALLOWED_ORIGINS_AND_PERMISSIONS.has(origin)) {
-      return;
-    }
+  // contents.on('will-navigate', (event, url) => {
+  //   const {origin} = new URL(url);
+  //   if (ALLOWED_ORIGINS_AND_PERMISSIONS.has(origin)) {
+  //     return;
+  //   }
 
-    // Prevent navigation
-    event.preventDefault();
+  //   // Prevent navigation
+  //   event.preventDefault();
 
-    if (import.meta.env.DEV) {
-      console.warn(`Blocked navigating to disallowed origin: ${origin}`);
-    }
-  });
+  //   if (import.meta.env.DEV) {
+  //     console.warn(`Blocked navigating to disallowed origin: ${origin}`);
+  //   }
+  // });
 
   /**
    * Block requests for disallowed permissions.

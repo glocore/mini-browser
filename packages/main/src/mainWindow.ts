@@ -1,48 +1,26 @@
-import {app, BrowserWindow} from 'electron';
+import {app, BrowserView, BrowserWindow} from 'electron';
 import {join} from 'node:path';
 import {URL} from 'node:url';
 
+export let chrome: BrowserView | undefined;
+export let webpage: BrowserView | undefined;
+export let mainWindow: BrowserWindow | undefined;
+
 async function createWindow() {
-  const browserWindow = new BrowserWindow({
-    show: false, // Use the 'ready-to-show' event to show the instantiated BrowserWindow.
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: false, // Sandbox disabled because the demo of preload script depend on the Node.js api
-      webviewTag: false, // The webview tag is not recommended. Consider alternatives like an iframe or Electron's BrowserView. @see https://www.electronjs.org/docs/latest/api/webview-tag#warning
-      preload: join(app.getAppPath(), 'packages/preload/dist/index.cjs'),
-    },
+  mainWindow = new BrowserWindow({
+    show: true,
+    frame: false,
+    // closable: false,
+    // minimizable: false,
+    // maximizable: false,
+    // fullscreenable: false,
+    // alwaysOnTop: true,
   });
 
-  /**
-   * If the 'show' property of the BrowserWindow's constructor is omitted from the initialization options,
-   * it then defaults to 'true'. This can cause flickering as the window loads the html content,
-   * and it also has show problematic behaviour with the closing of the window.
-   * Use `show: false` and listen to the  `ready-to-show` event to show the window.
-   *
-   * @see https://github.com/electron/electron/issues/25012 for the afford mentioned issue.
-   */
-  browserWindow.on('ready-to-show', () => {
-    browserWindow?.show();
+  createChrome();
+  createWebpage();
 
-    if (import.meta.env.DEV) {
-      browserWindow?.webContents.openDevTools();
-    }
-  });
-
-  /**
-   * URL for main window.
-   * Vite dev server for development.
-   * `file://../renderer/index.html` for production and test.
-   */
-  const pageUrl =
-    import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL !== undefined
-      ? import.meta.env.VITE_DEV_SERVER_URL
-      : new URL('../renderer/dist/index.html', 'file://' + __dirname).toString();
-
-  await browserWindow.loadURL(pageUrl);
-
-  return browserWindow;
+  return mainWindow;
 }
 
 /**
@@ -60,4 +38,88 @@ export async function restoreOrCreateWindow() {
   }
 
   window.focus();
+}
+
+function createChrome() {
+  /**
+   * Vite dev server for development.
+   * `file://../renderer/index.html` for production and test.
+   */
+  const pageUrl =
+    import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL !== undefined
+      ? import.meta.env.VITE_DEV_SERVER_URL
+      : new URL('../renderer/dist/index.html', 'file://' + __dirname).toString();
+
+  const chrome = new BrowserView({
+    webPreferences: {
+      preload: join(app.getAppPath(), 'packages/preload/dist/index.cjs'),
+      sandbox: false,
+    },
+  });
+  mainWindow?.addBrowserView(chrome);
+
+  function setSize() {
+    chrome.setBounds({
+      x: 0,
+      y: 0,
+      width: mainWindow?.getContentBounds().width ?? 0,
+      height: 55,
+    });
+  }
+
+  setSize();
+  autoResize(setSize);
+
+  chrome.webContents.loadURL(pageUrl);
+  chrome.webContents.on('dom-ready', () => {
+    mainWindow?.setTopBrowserView(chrome);
+    mainWindow?.show();
+
+    webpage!.webContents.on('will-navigate', (_, url) => {
+      console.log('will-navigate');
+      chrome!.webContents.send('URL_CHANGED', url);
+    });
+
+    webpage!.webContents.on('did-navigate-in-page', (_, url) => {
+      console.log('did-navigate-in-page');
+      chrome!.webContents.send('URL_CHANGED', url);
+    });
+  });
+
+  chrome.webContents.openDevTools({mode: 'detach'});
+}
+
+function createWebpage() {
+  webpage = new BrowserView();
+  mainWindow?.addBrowserView(webpage);
+
+  function setSize() {
+    webpage?.setBounds({
+      x: 0,
+      y: 55,
+      width: mainWindow?.getContentBounds().width ?? 0,
+      height: (mainWindow?.getContentBounds().height ?? 55) - 55,
+    });
+  }
+
+  setSize();
+  autoResize(setSize);
+
+  webpage.setBackgroundColor('#ffffff');
+  webpage.webContents.loadURL('https://google.com');
+}
+
+function autoResize(onResize: () => void) {
+  let lastHandle: NodeJS.Timeout;
+  function handleWindowResize(e: any) {
+    e.preventDefault();
+
+    // the setTimeout is necessary because it runs after the event listener is handled
+    lastHandle = setTimeout(() => {
+      if (lastHandle != null) clearTimeout(lastHandle);
+      if (mainWindow) onResize();
+    });
+  }
+
+  mainWindow?.on('resize', handleWindowResize);
 }

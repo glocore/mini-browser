@@ -2,7 +2,7 @@ import {app} from 'electron';
 import './security-restrictions';
 import {restoreOrCreateWindow} from '/@/mainWindow';
 import {platform} from 'node:process';
-
+import './handlers';
 /**
  * Prevent electron from running multiple instances.
  */
