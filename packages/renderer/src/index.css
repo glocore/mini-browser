@@ -19,6 +19,10 @@ button {
   cursor: default;
 }
 
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
 .backdrop-fade-in {
   animation: fadein 0.1s ease-out;
 }
@@ -45,5 +49,23 @@ button {
   to {
     opacity: 0;
   }
+}
+
+
+.tablist {
+  overflow: overlay;
+}
+
+.tablist::-webkit-scrollbar {
+  background-color: transparent;
+  height: 3px;
+}
+
+.tablist::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+.tablist:hover::-webkit-scrollbar-thumb {
+  background-color: #c4c4c4;
 }
 

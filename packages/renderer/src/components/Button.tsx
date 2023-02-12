@@ -7,7 +7,7 @@ export function Button({
   ...rest
 }: PropsWithChildren<React.HTMLProps<HTMLButtonElement>>) {
   return (
-    <button className="hover:bg-gray-100 rounded-md p-1" type="button" {...rest}>
+    <button className="hover:bg-gray-500/10 rounded p-1" type="button" {...rest}>
       {children}
     </button>
   );

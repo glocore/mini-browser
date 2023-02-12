@@ -1,55 +1,34 @@
 import { electronApi } from "#preload";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import cx from "classnames";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AiOutlinePushpin, AiOutlineReload } from "react-icons/ai";
-
-import { HiOutlineChevronLeft, HiOutlineChevronRight } from "react-icons/hi";
+import { useCallback, useState } from "react";
+import { AiOutlinePushpin } from "react-icons/ai";
+import { HiOutlineChevronDown } from "react-icons/hi";
+import { MdAdd, MdMoreVert } from "react-icons/md";
+import { snapshot } from "valtio";
+import { AddressBar } from "./components/AddressBar";
 import { Button } from "./components/Button";
+import { PageControls } from "./components/PageControls";
+import { createTab, resetTabs, Tabs, tabStore } from "./components/Tabs";
 import "./index.css";
+
+resetTabs();
 
 const App = () => {
   const [chromeStatus, setChromeStatus] = useState<"minimized" | "maximized">("minimized");
-  const [url, setUrl] = useState("");
-  const addressBarRef = useRef<HTMLInputElement>(null);
-
-  const hasSubscribedToUrlChanges = useRef<boolean>(false);
-  useEffect(() => {
-    if (hasSubscribedToUrlChanges.current) return;
-
-    electronApi.subscribeToUrlChanges((url) => {
-      setUrl(url);
-    });
-
-    hasSubscribedToUrlChanges.current = true;
-  }, []);
 
   const minimizeChrome = useCallback(() => {
     setChromeStatus("minimized");
     setTimeout(() => {
       electronApi.minimizeChrome();
+      electronApi.focusWebpage(snapshot(tabStore).activeTab!);
     }, 150); // time it takes to fade out the chrome backdrop
   }, []);
 
-  const handleAddressBarBlur = useCallback(() => {
-    minimizeChrome();
-  }, []);
-
-  const handleAddressBarFocus = useCallback(() => {
+  const maximizeChrome = useCallback(() => {
     electronApi.maximizeChrome();
     setChromeStatus("maximized");
-    setTimeout(() => {
-      addressBarRef.current?.select();
-    });
   }, []);
-
-  const handleSubmit = useCallback(
-    (e: any) => {
-      e.preventDefault();
-      electronApi.updateUrl(url);
-      minimizeChrome();
-    },
-    [url]
-  );
 
   return (
     <div style={{ height: "100%" }}>
@@ -62,38 +41,57 @@ const App = () => {
 
       <div className="z-20 relative">
         {/* tab bar */}
-        <div className="flex h-[28px] px-1">
-          <div className="flex-1" />
-          <Button title="Pin window (⌘+P)">
-            <AiOutlinePushpin />
-          </Button>
+        <div className="flex h-[28px] bg-[#DEE1E6]">
+          <div className="tablist min-w-0 h-full overflow-auto">
+            <Tabs />
+          </div>
+          <div className="flex-1 flex items-center ml-0.5">
+            <Button title="New Tab (⌘+T)" onClick={() => createTab()}>
+              <MdAdd />
+            </Button>
+          </div>
+          <div className="flex items-center mr-1">
+            <div className="h-full w-4" />
+            <Button title="Pin window (⌘+P)">
+              <HiOutlineChevronDown size={14} />
+            </Button>
+            <Button title="Pin window (⌘+P)">
+              <AiOutlinePushpin size={14} />
+            </Button>
+          </div>
         </div>
 
-        <form
-          className="flex items-center bg-white border-b border-b-gray-300 h-[45px] p-1"
-          onSubmit={handleSubmit}
-        >
-          <Button title="Go Back">
-            <HiOutlineChevronLeft size={20} />
-          </Button>
-          <Button title="Go Forward">
-            <HiOutlineChevronRight size={20} />
-          </Button>
-          <Button title="Reload Page">
-            <AiOutlineReload size={18} />
-          </Button>
-          <input
-            ref={addressBarRef}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onFocus={handleAddressBarFocus}
-            onBlur={handleAddressBarBlur}
-            className="flex-1 h-[90%] border-none outline-blue-600 outline-4 rounded-full mx-1 px-4 bg-gray-100 focus:bg-white"
-          />
-        </form>
+        <div className="flex items-center bg-white border-b border-b-gray-200 h-[35px] p-0.5">
+          <PageControls />
+          <AddressBar onFocus={maximizeChrome} onBlur={minimizeChrome} />
+          <div className="mr-0.5 flex items-center">
+            <Button>
+              <MdMoreVert />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default App;
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      cacheTime: 0,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+      refetchOnWindowFocus: false,
+      retry: false,
+      retryOnMount: false,
+    },
+  },
+});
+
+export default function () {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  );
+}

@@ -3,12 +3,16 @@ import { ipcRenderer } from "electron";
 export { versions } from "./versions";
 
 export const electronApi = {
-  subscribeToUrlChanges(callback: (url: string) => void) {
-    ipcRenderer.on("URL_CHANGED", (_, url) => callback(url));
+  subscribeToTabChanges(
+    callback: (tab: { id: string; url?: string; title?: string; favicons?: string[] }) => void
+  ) {
+    ipcRenderer.on("URL_UPDATED", (_, tabId, url) => callback({ id: tabId, url }));
+    ipcRenderer.on("TITLE_UPDATED", (_, tabId, title) => callback({ id: tabId, title }));
+    ipcRenderer.on("FAVICON_UPDATED", (_, tabId, favicons) => callback({ id: tabId, favicons }));
   },
 
-  updateUrl(url: string) {
-    ipcRenderer.send("UPDATE_URL", url);
+  updateUrl(tabId: string, url: string) {
+    ipcRenderer.send("UPDATE_URL", tabId, url);
   },
 
   minimizeChrome() {
@@ -17,5 +21,37 @@ export const electronApi = {
 
   maximizeChrome() {
     ipcRenderer.send("MAXIMIZE_CHROME");
+  },
+
+  focusChrome() {
+    ipcRenderer.send("FOCUS_CHROME");
+  },
+
+  focusWebpage(tabId: string) {
+    ipcRenderer.send("FOCUS_WEBPAGE", tabId);
+  },
+
+  resetTabs(tabs: any) {
+    ipcRenderer.send("RESET_TABS", tabs);
+  },
+
+  createTab(tab: any) {
+    ipcRenderer.send("CREATE_TAB", tab);
+  },
+
+  destroyTab(tabId: string) {
+    ipcRenderer.send("DESTROY_TAB", tabId);
+  },
+
+  goBack(tabId: string) {
+    ipcRenderer.send("GO_BACK", tabId);
+  },
+
+  goForward(tabId: string) {
+    ipcRenderer.send("GO_FORWARD", tabId);
+  },
+
+  reloadPage(tabId: string) {
+    ipcRenderer.send("RELOAD_PAGE", tabId);
   },
 };
