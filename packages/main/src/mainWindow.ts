@@ -1,4 +1,4 @@
-import { app, BrowserView, BrowserWindow, Menu } from "electron";
+import { app, BrowserView, BrowserWindow, globalShortcut } from "electron";
 import { join } from "node:path";
 import { URL } from "node:url";
 import { registerHotkeys, unregisterHotkeys } from "./hotkeys";
@@ -7,52 +7,70 @@ import { tabs } from "./tabs";
 export let chrome: BrowserView | undefined;
 export let mainWindow: BrowserWindow | undefined;
 
-async function createWindow() {
+const isDev = import.meta.env.DEV;
+
+export async function createMainWindow() {
   mainWindow = new BrowserWindow({
-    show: true,
+    show: false,
     frame: false,
-    // type: "panel",
+    type: "panel",
 
     width: 400,
     height: 600,
     minWidth: 400,
     minHeight: 400,
-    // skipTaskbar: true,
-    // closable: false,
+    skipTaskbar: true,
+    closable: isDev,
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
   });
 
-  // mainWindow.removeMenu();
+  mainWindow.removeMenu();
 
-  // mainWindow.setVisibleOnAllWorkspaces(true, {
-  //   visibleOnFullScreen: true,
-  // });
+  mainWindow.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true,
+  });
 
   mainWindow.on("focus", registerHotkeys);
   mainWindow.on("blur", unregisterHotkeys);
 
+  globalShortcut.register("CmdOrCtrl+Shift+M", toggleWindow);
+
+  unpinWindow();
   createChrome();
 
   return mainWindow;
 }
 
-/**
- * Restore an existing BrowserWindow or Create a new BrowserWindow.
- */
-export async function restoreOrCreateWindow() {
-  let window = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed());
+export function showWindow() {
+  /**
+   * This is a workaround for a bug where an old frame (from when the window was
+   * hidden using window.hide()) is visible for a split second before showing
+   * the correct frame.
+   */
+  chrome?.webContents.incrementCapturerCount();
 
-  if (window === undefined) {
-    window = await createWindow();
-  }
+  mainWindow?.showInactive();
+  mainWindow?.focus();
+  mainWindow?.setAlwaysOnTop(true);
+}
 
-  if (window.isMinimized()) {
-    window.restore();
-  }
+function toggleWindow() {
+  if (mainWindow?.isFocused()) hideWindow();
+  else showWindow();
+}
 
-  window.focus();
+export function hideWindow() {
+  mainWindow?.hide();
+}
+
+export function pinWindow() {
+  mainWindow?.removeListener("blur", hideWindow);
+}
+
+export function unpinWindow() {
+  mainWindow?.addListener("blur", hideWindow);
 }
 
 function createChrome() {
@@ -61,7 +79,7 @@ function createChrome() {
    * `file://../renderer/index.html` for production and test.
    */
   const pageUrl =
-    import.meta.env.DEV && import.meta.env.VITE_DEV_SERVER_URL !== undefined
+    isDev && import.meta.env.VITE_DEV_SERVER_URL !== undefined
       ? import.meta.env.VITE_DEV_SERVER_URL
       : new URL("../renderer/dist/index.html", "file://" + __dirname).toString();
 
@@ -88,11 +106,6 @@ function createChrome() {
   autoResize(setSize);
 
   chrome.webContents.loadURL(pageUrl);
-  chrome.webContents.on("dom-ready", () => {
-    // mainWindow?.setTopBrowserView(chrome);
-    mainWindow?.show();
-  });
-
   chrome.webContents.openDevTools({ mode: "detach" });
 }
 
