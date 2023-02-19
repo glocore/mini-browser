@@ -1,5 +1,5 @@
 import { globalShortcut } from "electron";
-import { chrome } from "./mainWindow";
+import { chrome, isMainWindowPinned, pinWindow, unpinWindow } from "./mainWindow";
 
 const registrations = new Set<string>();
 
@@ -9,6 +9,16 @@ function register(accelerator: string, callback: () => void) {
 }
 
 export function registerHotkeys() {
+  register("CmdOrCtrl+P", () => {
+    if (isMainWindowPinned) {
+      unpinWindow();
+      chrome?.webContents.send("HOTKEY", "TOGGLE_PIN", "UNPIN");
+    } else {
+      pinWindow();
+      chrome?.webContents.send("HOTKEY", "TOGGLE_PIN", "PIN");
+    }
+  });
+
   register("CmdOrCtrl+L", () => {
     chrome?.webContents.focus();
     chrome?.webContents.send("HOTKEY", "FOCUS_ADDRESSBAR");

@@ -1,12 +1,12 @@
 import { electronApi } from "#preload";
 import cx from "classnames";
-import { useCallback, useState } from "react";
-import { AiOutlinePushpin } from "react-icons/ai";
+import { useCallback, useEffect, useState } from "react";
 import { MdAdd, MdMoreVert } from "react-icons/md";
 import { snapshot } from "valtio";
 import { AddressBar } from "./components/AddressBar";
 import { Button } from "./components/Button";
 import { PageControls } from "./components/PageControls";
+import { PinWindowButton } from "./components/PinWindowButton";
 import { createTab, destroyTab, getActiveTab, resetTabs, Tabs, tabStore } from "./components/Tabs";
 import "./index.css";
 
@@ -14,6 +14,7 @@ resetTabs();
 
 export default function App() {
   const [chromeStatus, setChromeStatus] = useState<"minimized" | "maximized">("minimized");
+  const [isWindowFocused, setIsWindowFocused] = useState(true);
 
   const minimizeChrome = useCallback(() => {
     setChromeStatus("minimized");
@@ -28,6 +29,16 @@ export default function App() {
     setChromeStatus("maximized");
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = electronApi.subscribeToWindowFocus((f) => {
+      /* prevent flash when window is unfocused */
+      setTimeout(() => {
+        setIsWindowFocused(f);
+      }, 10);
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <div style={{ height: "100%" }}>
       <div
@@ -39,7 +50,7 @@ export default function App() {
 
       <div className="z-20 relative">
         {/* tab bar */}
-        <div className="flex h-[28px] bg-[#DEE1E6]">
+        <div className={cx("flex h-[28px]", isWindowFocused ? "bg-[#DEE1E6]" : "bg-[#f6f6f6]")}>
           <Tabs />
           <div className="flex-1 flex items-center ml-0.5">
             <Button title="New Tab (⌘+T)" onClick={createTab}>
@@ -48,9 +59,7 @@ export default function App() {
           </div>
           <div className="flex items-center mr-1">
             <div className="h-full w-4" />
-            <Button title="Pin window (⌘+P)">
-              <AiOutlinePushpin size={14} />
-            </Button>
+            <PinWindowButton />
           </div>
         </div>
 

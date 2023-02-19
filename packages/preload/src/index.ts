@@ -3,8 +3,40 @@ import { ipcRenderer } from "electron";
 export { versions } from "./versions";
 
 export const electronApi = {
-  subscribeToHotkeys(callback: (command: string) => void) {
-    ipcRenderer.on("HOTKEY", (_, command: string) => callback(command));
+  isMac: process.platform === "darwin",
+  isWindows: process.platform === "win32",
+  isLinux: process.platform === "linux",
+
+  getWindowPinStatus() {
+    return ipcRenderer.invoke("WINDOW_PIN_STATUS") as Promise<boolean>;
+  },
+
+  pinWindow() {
+    ipcRenderer.send("PIN_WINDOW");
+  },
+
+  unpinWindow() {
+    ipcRenderer.send("UNPIN_WINDOW");
+  },
+
+  subscribeToWindowFocus(callback: (isFocused: boolean) => void) {
+    const handler = (_: unknown, isFocused: boolean) => callback(isFocused);
+
+    ipcRenderer.on("WINDOW_FOCUS_CHANGE", handler);
+
+    return () => {
+      ipcRenderer.removeListener("WINDOW_FOCUS_CHANGE", handler);
+    };
+  },
+
+  subscribeToHotkeys(callback: (command: string, ...args: any[]) => void) {
+    const handler = (_: unknown, command: string, ...args: any[]) => callback(command, ...args);
+
+    ipcRenderer.on("HOTKEY", handler);
+
+    return () => {
+      ipcRenderer.removeListener("HOTKEY", handler);
+    };
   },
 
   subscribeToTabChanges(

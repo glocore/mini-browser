@@ -1,9 +1,29 @@
 import { ipcMain } from "electron";
 import { URL } from "node:url";
-import { minimizeChrome, maximizeChrome, focusWebpage, focusChrome, chrome } from "./mainWindow";
-import { createTab, destroyTab, tabs, navigateTab, Tab, resetTabs } from "./tabs";
+import {
+  chrome,
+  focusChrome,
+  focusWebpage,
+  isMainWindowPinned,
+  maximizeChrome,
+  minimizeChrome,
+  pinWindow,
+  unpinWindow,
+} from "./mainWindow";
+import { createTab, destroyTab, navigateTab, resetTabs, Tab, tabs } from "./tabs";
 
 [
+  function handleWindowPin() {
+    ipcMain.on("PIN_WINDOW", pinWindow);
+    ipcMain.on("UNPIN_WINDOW", unpinWindow);
+  },
+
+  function handleWindowPinStatusRequest() {
+    ipcMain.handle("WINDOW_PIN_STATUS", () => {
+      return isMainWindowPinned;
+    });
+  },
+
   function handleUpdateUrl() {
     ipcMain.on("UPDATE_URL", (_, tabId: string, url: string) => {
       const browserView = tabs.get(tabId);

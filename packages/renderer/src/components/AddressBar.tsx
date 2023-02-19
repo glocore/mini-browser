@@ -54,7 +54,6 @@ export function AddressBar(props: AddressBarProps) {
   return (
     <input
       id="addressbar"
-      autoFocus
       ref={addressBarRef}
       value={inputValue}
       onChange={(e) => setInputValue(e.target.value)}

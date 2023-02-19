@@ -6,6 +6,7 @@ import { tabs } from "./tabs";
 
 export let chrome: BrowserView | undefined;
 export let mainWindow: BrowserWindow | undefined;
+export let isMainWindowPinned = false;
 
 const isDev = import.meta.env.DEV;
 
@@ -32,8 +33,8 @@ export async function createMainWindow() {
     visibleOnFullScreen: true,
   });
 
-  mainWindow.on("focus", registerHotkeys);
-  mainWindow.on("blur", unregisterHotkeys);
+  mainWindow.on("focus", handleWindowFocus);
+  mainWindow.on("blur", handleWindowBlur);
 
   globalShortcut.register("CmdOrCtrl+Shift+M", toggleWindow);
 
@@ -41,6 +42,16 @@ export async function createMainWindow() {
   createChrome();
 
   return mainWindow;
+}
+
+function handleWindowFocus() {
+  registerHotkeys();
+  chrome?.webContents.send("WINDOW_FOCUS_CHANGE", true);
+}
+
+function handleWindowBlur() {
+  unregisterHotkeys();
+  chrome?.webContents.send("WINDOW_FOCUS_CHANGE", false);
 }
 
 export function showWindow() {
@@ -56,20 +67,22 @@ export function showWindow() {
   mainWindow?.setAlwaysOnTop(true);
 }
 
+export function hideWindow() {
+  mainWindow?.hide();
+}
+
 function toggleWindow() {
   if (mainWindow?.isFocused()) hideWindow();
   else showWindow();
 }
 
-export function hideWindow() {
-  mainWindow?.hide();
-}
-
 export function pinWindow() {
+  isMainWindowPinned = true;
   mainWindow?.removeListener("blur", hideWindow);
 }
 
 export function unpinWindow() {
+  isMainWindowPinned = false;
   mainWindow?.addListener("blur", hideWindow);
 }
 
