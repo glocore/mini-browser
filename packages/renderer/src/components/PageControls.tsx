@@ -1,5 +1,5 @@
 import { electronApi } from "#preload";
-import { MdOutlineArrowBack, MdOutlineArrowForward, MdRefresh } from "react-icons/md";
+import { MdOutlineArrowBack, MdOutlineArrowForward, MdOutlineRefresh } from "react-icons/md";
 import { Button } from "./Button";
 import { getActiveTab } from "./Tabs";
 
@@ -13,7 +13,7 @@ export function PageControls() {
         <MdOutlineArrowForward size={18} />
       </Button>
       <Button title="Reload Page" onClick={reloadPage}>
-        <MdRefresh size={18} />
+        <MdOutlineRefresh size={18} />
       </Button>
     </div>
   );

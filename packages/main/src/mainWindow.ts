@@ -1,6 +1,7 @@
-import { app, BrowserView, BrowserWindow } from "electron";
+import { app, BrowserView, BrowserWindow, Menu } from "electron";
 import { join } from "node:path";
 import { URL } from "node:url";
+import { registerHotkeys, unregisterHotkeys } from "./hotkeys";
 import { tabs } from "./tabs";
 
 export let chrome: BrowserView | undefined;
@@ -10,17 +11,27 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     show: true,
     frame: false,
+    // type: "panel",
+
     width: 400,
     height: 600,
     minWidth: 400,
     minHeight: 400,
-
+    // skipTaskbar: true,
     // closable: false,
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    // alwaysOnTop: true,
   });
+
+  // mainWindow.removeMenu();
+
+  // mainWindow.setVisibleOnAllWorkspaces(true, {
+  //   visibleOnFullScreen: true,
+  // });
+
+  mainWindow.on("focus", registerHotkeys);
+  mainWindow.on("blur", unregisterHotkeys);
 
   createChrome();
 
@@ -100,7 +111,7 @@ export function autoResize(onResize: () => void) {
   mainWindow?.on("resize", handleWindowResize);
 }
 
-export function minimizeChrome() { }
+export function minimizeChrome() {}
 
 export function maximizeChrome() {
   if (!chrome) return;

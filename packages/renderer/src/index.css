@@ -17,6 +17,7 @@ input {
 button {
   -webkit-app-region: no-drag;
   cursor: default;
+  outline: none;
 }
 
 .no-drag {
@@ -53,7 +54,7 @@ button {
 
 
 .tablist {
-  overflow: overlay;
+  overflow-x: overlay;
 }
 
 .tablist::-webkit-scrollbar {
@@ -67,5 +68,18 @@ button {
 
 .tablist:hover::-webkit-scrollbar-thumb {
   background-color: #c4c4c4;
+}
+
+.tablist-left-shadow {
+  box-shadow: inset 8px 0 5px -5px #AAAAAA;
+}
+
+.tablist-right-shadow {
+  box-shadow: inset -8px 0 5px -5px #AAAAAA;
+}
+
+.tablist-left-right-shadow {
+  box-shadow: inset 8px 0 5px -5px #AAAAAA,
+              inset -8px 0 5px -5px #AAAAAA;
 }
 

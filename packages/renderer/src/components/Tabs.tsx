@@ -1,9 +1,9 @@
 import { electronApi } from "#preload";
 import cx from "classnames";
 import { nanoid } from "nanoid";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BiPlanet } from "react-icons/bi";
 import { HiX } from "react-icons/hi";
-import { MdClose } from "react-icons/md";
 import { proxy, snapshot, useSnapshot } from "valtio";
 import { Button } from "./Button";
 
@@ -36,11 +36,55 @@ electronApi.subscribeToTabChanges(({ id, url, title, favicons }) => {
 export function Tabs() {
   const { tabs, activeTab } = useSnapshot(tabStore);
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    function handler() {
+      const element = wrapperRef.current;
+
+      if (!element) return;
+
+      const _canScrollLeft = element.scrollLeft > 0;
+      const _canScrollRight = element.scrollLeft + element.clientWidth < element.scrollWidth;
+
+      if (_canScrollLeft) setCanScrollLeft(true);
+      else setCanScrollLeft(false);
+
+      if (_canScrollRight) setCanScrollRight(true);
+      else setCanScrollRight(false);
+    }
+
+    wrapperRef.current?.addEventListener("scroll", handler);
+
+    const ro = new ResizeObserver(handler);
+    ro.observe(wrapperRef.current!);
+
+    return () => {
+      wrapperRef.current?.removeEventListener("scroll", handler);
+      ro.disconnect();
+    };
+  }, []);
+
   return (
-    <div className="flex h-full">
-      {tabs.map((t) => (
-        <TabButton key={t.id} tab={t as any} isActiveTab={t.id === activeTab} />
-      ))}
+    <div className="min-w-0 h-full relative">
+      <div className="tablist w-full h-full" ref={wrapperRef} id="tabs-wrapper">
+        <div className="flex h-full">
+          {tabs.map((t) => (
+            <TabButton key={t.id} tab={t as any} isActiveTab={t.id === activeTab} />
+          ))}
+        </div>
+      </div>
+
+      <div
+        className={cx("absolute top-0 left-0 w-full h-full pointer-events-none transition-shadow", {
+          "tablist-left-shadow": canScrollLeft && !canScrollRight,
+          "tablist-right-shadow": !canScrollLeft && canScrollRight,
+          "tablist-left-right-shadow": canScrollLeft && canScrollRight,
+        })}
+      />
     </div>
   );
 }
@@ -49,7 +93,9 @@ function TabButton({ tab, isActiveTab }: { tab: Tab; isActiveTab: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    ref.current?.scrollIntoView({ inline: "nearest" });
+    if (!isActiveTab) return;
+    if (!ref.current) return;
+    ref.current?.scrollIntoView({ behavior: "smooth", inline: "nearest" });
   }, [isActiveTab]);
 
   const handleTabClick = useCallback(
@@ -66,6 +112,13 @@ function TabButton({ tab, isActiveTab }: { tab: Tab; isActiveTab: boolean }) {
     destroyTab(tab.id);
   }, []);
 
+  const [favicon, setFavicon] = useState<string | null>(null);
+
+  useEffect(() => {
+    /** The last image in the favicons list are typically higher-res. */
+    setFavicon(tab.favicons?.at(-1) ?? null);
+  }, [tab.favicons]);
+
   return (
     <div ref={ref}>
       <div
@@ -75,8 +128,12 @@ function TabButton({ tab, isActiveTab }: { tab: Tab; isActiveTab: boolean }) {
           "bg-white": isActiveTab,
         })}
       >
-        <div className="mr-1 w-3 h-3">
-          {tab.favicons?.[0] ? <img src={tab.favicons?.[0]} className="w-full h-full" /> : null}
+        <div className="mr-1">
+          {favicon ? (
+            <img src={favicon} onError={() => setFavicon(null)} className="w-4 h-4" />
+          ) : (
+            <BiPlanet size={16} className="mt-[1px]" />
+          )}
         </div>
         <span className="min-w-0 text-xs truncate flex-1">{tab.title ?? tab.url ?? "New Tab"}</span>
         <Button onClick={handleCloseClick} className="p-1 rounded hover:bg-gray-200">
@@ -93,6 +150,7 @@ export function resetTabs() {
   tabStore.tabs = [{ id }];
   tabStore.activeTab = id;
   electronApi.resetTabs(snapshot(tabStore.tabs));
+  document.getElementById("addressbar")?.focus();
 }
 
 export function createTab() {
@@ -103,6 +161,7 @@ export function createTab() {
   tabStore.activeTab = id;
 
   electronApi.createTab(tab);
+  document.getElementById("addressbar")?.focus();
 }
 
 function focusTab(id: string) {
@@ -110,7 +169,7 @@ function focusTab(id: string) {
   tabStore.activeTab = id;
 }
 
-function destroyTab(tabId: string) {
+export function destroyTab(tabId: string) {
   const tabIndex = tabStore.tabs.findIndex((t) => t.id === tabId);
   const tabBefore = tabStore.tabs[tabIndex - 1];
   const tabAfter = tabStore.tabs[tabIndex + 1];

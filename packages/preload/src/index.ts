@@ -3,6 +3,10 @@ import { ipcRenderer } from "electron";
 export { versions } from "./versions";
 
 export const electronApi = {
+  subscribeToHotkeys(callback: (command: string) => void) {
+    ipcRenderer.on("HOTKEY", (_, command: string) => callback(command));
+  },
+
   subscribeToTabChanges(
     callback: (tab: { id: string; url?: string; title?: string; favicons?: string[] }) => void
   ) {
